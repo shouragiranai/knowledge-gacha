@@ -19,8 +19,21 @@
   /* ---------- 問題の取得と先読み ---------- */
 
   async function makeQuestion() {
-    const articles = await KG.wiki.fetchArticles(4);
-    return KG.quiz.buildQuestion(articles);
+    const [answer] = await KG.wiki.fetchArticles(1);
+    let distractors = [];
+    try {
+      const similar = await KG.wiki.fetchSimilarTitles(answer.title);
+      distractors = KG.quiz.pickDistractors(answer, similar);
+    } catch (e) {
+      // 検索に失敗したらランダム記事で代用する
+    }
+    if (distractors.length < 3) {
+      const extra = await KG.wiki.fetchArticles(4);
+      const more = extra.map((a) => a.title)
+        .filter((t) => t !== answer.title && !distractors.includes(t));
+      distractors = distractors.concat(more).slice(0, 3);
+    }
+    return KG.quiz.buildQuestion(answer, distractors);
   }
 
   function prefetch() {
@@ -137,19 +150,22 @@
       b.addEventListener('click', () => answer(title, b));
       box.appendChild(b);
     });
+    $('btn-skip').disabled = false;
   }
 
+  /** title が null のときは「分からない」 */
   function answer(title, btn) {
     const q = state.current;
     if (state.phase !== 'question') return;
     state.phase = 'answering';
     const ok = title === q.answer.title;
+    $('btn-skip').disabled = true;
 
     document.querySelectorAll('#options .option').forEach((b) => {
       b.disabled = true;
       if (b.querySelector('.txt').textContent === q.answer.title) b.classList.add('correct');
     });
-    if (!ok) btn.classList.add('wrong');
+    if (btn) btn.classList.add('wrong');
 
     stats.record(ok);
     if (state.mode === 'review') {
@@ -176,12 +192,14 @@
     const sub = ok
       ? (s.streak >= 2 ? s.streak + '問連続正解' : '')
       : (state.mode === 'review' ? '復習リストに残ります' : '復習リストに追加しました');
-    $('verdict').innerHTML =
-      (ok ? '<div class="stamp ok">正解</div>' : '<div class="stamp ng">残念</div>') +
+    const stamp = ok ? '<div class="stamp ok">正解</div>'
+      : chosen === null ? '<div class="stamp pass">答え</div>'
+      : '<div class="stamp ng">残念</div>';
+    $('verdict').innerHTML = stamp +
       (sub ? '<p class="verdict-sub">' + escapeHtml(sub) + '</p>' : '');
 
     const ya = $('your-answer');
-    if (ok) {
+    if (ok || chosen === null) {
       ya.hidden = true;
     } else {
       ya.hidden = false;
@@ -373,6 +391,7 @@
 
   $('btn-next').addEventListener('click', nextQuestion);
   $('btn-retry').addEventListener('click', nextQuestion);
+  $('btn-skip').addEventListener('click', () => answer(null, null));
   $('btn-fav').addEventListener('click', () => {
     favorites.toggle(state.current.answer);
     renderFavButton();

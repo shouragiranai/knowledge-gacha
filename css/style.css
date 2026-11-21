@@ -133,6 +133,8 @@ main {
 }
 .stamp.ok { color: var(--shu); transform: rotate(-12deg); background: rgba(183, 71, 42, .06); }
 .stamp.ng { color: var(--ai); background: rgba(44, 74, 107, .06); animation: stamp-ng .6s ease both; }
+.stamp.pass { color: var(--ink-soft); background: rgba(43, 38, 34, .04); animation: stamp-pass .45s ease both; }
+@keyframes stamp-pass { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: none; } }
 .verdict-sub { margin: 8px 0 0; font-family: var(--mincho); color: var(--ink-soft); font-size: .95rem; }
 @keyframes stamp {
   0% { opacity: 0; transform: scale(2.4) rotate(-30deg); }
@@ -194,6 +196,11 @@ main {
 }
 .btn-fav { color: var(--kin); border-color: var(--kin); }
 .btn-fav.is-on { background: #f3e7c9; color: #8a6a28; }
+.btn-skip {
+  display: flex; width: 100%; margin-top: 14px; min-height: 50px;
+  background: transparent; border-style: dashed; color: var(--ink-soft); font-weight: 500;
+}
+.btn-skip:disabled { opacity: .5; }
 .btn-small { min-height: 44px; padding: 0 16px; font-size: .92rem; }
 .link-btn {
   min-height: 44px; padding: 0 8px; border: 0; background: none;

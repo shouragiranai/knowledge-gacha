@@ -5,9 +5,13 @@ Wikipedia(日本語版)のランダム記事を使って、4択クイズで色�
 
 ## 機能
 
-- **クイズ**(1問ごとにランダム記事を4件取得)
+- **クイズ**(1問ごとにランダム記事を1件引き、似た記事を検索して選択肢を作る)
   - 「この説明はどの記事?」:要約の記事名を「〇〇」に伏せて出題(冒頭の読み仮名も除去)
   - 「この画像は何?」:サムネイルがある記事のみ。画像を見て4択
+  - 選択肢は Wikipedia 検索の「似た記事」(`morelike:`)から選ぶので、同じ分野の紛らわしい選択肢になります
+    - 正解と名前が重なる記事・説明文に出てくる語・曖昧さ回避や一覧は除外
+    - 検索に失敗したときはランダム記事で代用
+  - 「分からない」ボタンで答えを見られます(不正解扱いで復習リストに入ります)
   - 次の問題を裏で先読みするので、待ち時間がほぼありません
   - 要約が50字未満の記事・曖昧さ回避ページは除外
 - **回答後の画面**:正解/不正解のハンコ風アニメーション、要約全文・画像・「Wikipediaで読む」リンク、「☆ 気になる」保存
@@ -32,7 +36,9 @@ icon.svg        ファビコン
 .nojekyll       GitHub Pages で Jekyll 処理を無効化
 ```
 
-使用API(APIキー不要):`https://ja.wikipedia.org/api/rest_v1/page/random/summary`
+使用API(どちらもAPIキー不要):
+- ランダム記事:`https://ja.wikipedia.org/api/rest_v1/page/random/summary`
+- 似た記事の検索:`https://ja.wikipedia.org/w/api.php?action=query&list=search&srsearch=morelike:<記事名>&origin=*`
 
 ## ローカルで動かす
 
@@ -64,4 +70,4 @@ python3 -m http.server 8000
 ## 注意
 
 - Wikipedia のコンテンツは [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.ja) で提供されています。回答画面から元記事へリンクしています。
-- 1問あたり Wikipedia API に数回〜十数回リクエストします(条件に合わない記事を飛ばすため)。
+- 1問あたり Wikipedia API に数回リクエストします(条件に合わない記事を飛ばすため)。

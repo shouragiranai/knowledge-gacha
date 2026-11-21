@@ -65,5 +65,29 @@
     return found;
   }
 
-  KG.wiki = { fetchArticles, isUsable };
+  const ACTION_API = 'https://ja.wikipedia.org/w/api.php';
+
+  /**
+   * 内容が似ている記事のタイトルを検索で集める(CirrusSearch の morelike)。
+   * 紛らわしい選択肢を作るのに使う。
+   */
+  async function fetchSimilarTitles(title) {
+    const params = new URLSearchParams({
+      action: 'query',
+      list: 'search',
+      srsearch: 'morelike:' + title,
+      srnamespace: '0',
+      srlimit: '20',
+      srprop: '',
+      format: 'json',
+      formatversion: '2',
+      origin: '*', // 匿名のCORSリクエスト
+    });
+    const res = await fetch(ACTION_API + '?' + params.toString());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return ((data.query && data.query.search) || []).map((r) => r.title);
+  }
+
+  KG.wiki = { fetchArticles, fetchSimilarTitles, isUsable };
 })(window.KG = window.KG || {});

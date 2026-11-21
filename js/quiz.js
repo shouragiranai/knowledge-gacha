@@ -72,32 +72,49 @@
     return text;
   }
 
-  /**
-   * 4件の記事から1問作る。
-   * @param {object[]} articles 4件
-   * @param {{allowImage?: boolean}} [opts]
-   */
-  function buildQuestion(articles, opts) {
-    const allowImage = !opts || opts.allowImage !== false;
-    const withImage = articles.filter((a) => a.thumbnail);
-    let type = 'text';
-    let answer;
-    if (allowImage && withImage.length > 0 && Math.random() < 0.5) {
-      type = 'image';
-      answer = withImage[Math.floor(Math.random() * withImage.length)];
-    } else {
-      answer = articles[Math.floor(Math.random() * articles.length)];
-    }
-    const others = articles.filter((a) => a !== answer).slice(0, 3);
+  function baseTitle(t) {
+    return t.replace(/\s*[（(][^（()）]*[）)]\s*$/, '').trim();
+  }
 
+  /**
+   * 似た記事の候補から、紛らわしいが答えにならない選択肢を選ぶ。
+   * @param {object} answer 正解記事
+   * @param {string[]} candidates 検索で見つかった似た記事のタイトル(関連度順)
+   * @param {number} [n]
+   */
+  function pickDistractors(answer, candidates, n) {
+    n = n || 3;
+    const ansBase = baseTitle(answer.title);
+    const seenBase = new Set([ansBase]);
+    const ok = [];
+    for (const t of candidates) {
+      const b = baseTitle(t);
+      if (!b || seenBase.has(b)) continue;               // 同名の別記事は紛らわしすぎる
+      if (/曖昧さ回避|一覧|^Wikipedia:/.test(t)) continue;
+      if ((ansBase.length >= 2 && b.includes(ansBase)) || (b.length >= 2 && ansBase.includes(b))) continue; // 名前の一部が重なると答えが絞れてしまう
+      if (b.length >= 2 && answer.extract.includes(b)) continue; // 説明文に出てくる語は消去法で外せてしまう
+      seenBase.add(b);
+      ok.push(t);
+    }
+    // 関連度の高い上位から選び、毎回同じ組み合わせにならないよう少し混ぜる
+    return shuffle(ok.slice(0, Math.max(n, 6))).slice(0, n);
+  }
+
+  /**
+   * 正解記事と3つの選択肢から1問作る。
+   * @param {object} answer 正解記事
+   * @param {string[]} distractors 不正解の選択肢(3件)
+   */
+  function buildQuestion(answer, distractors) {
+    const type = answer.thumbnail && Math.random() < 0.5 ? 'image' : 'text';
     return {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
       type,
       prompt: type === 'text' ? maskTitle(answer.extract, answer.title) : null,
       answer,
-      options: shuffle([answer.title, ...others.map((a) => a.title)]),
+      options: shuffle([answer.title, ...distractors.slice(0, 3)]),
     };
   }
 
-  KG.quiz = { buildQuestion, maskTitle, shuffle };
+  KG.quiz = { buildQuestion, pickDistractors, maskTitle, shuffle };
 })(window.KG = window.KG || {});
