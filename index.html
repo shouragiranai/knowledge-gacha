@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#f4eee0">
   <meta name="description" content="Wikipediaのランダム記事でクイズに挑戦。色々な分野の知識を楽しく増やす「知識ガチャ」。">
   <title>知識ガチャ</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
@@ -14,18 +15,23 @@
 <body>
   <header class="app-header">
     <h1 class="logo">知識<span>ガチャ</span></h1>
+    <div class="header-stat" id="header-stat" aria-label="連続正解数"></div>
   </header>
 
   <main id="main">
     <!-- 出題 -->
     <section id="view-quiz" class="view" aria-live="polite">
+      <div class="review-banner" id="review-banner" hidden>
+        <span>復習モード <b id="review-progress"></b></span>
+        <button class="link-btn" id="btn-review-quit" type="button">やめる</button>
+      </div>
       <div id="quiz-loading" class="loading">
         <div class="spinner" aria-hidden="true"></div>
         <p>記事を引いています…</p>
       </div>
       <div id="quiz-error" class="error" hidden>
         <p id="quiz-error-msg"></p>
-        <button class="btn btn-primary" id="btn-retry">もう一度試す</button>
+        <button class="btn btn-primary" id="btn-retry" type="button">もう一度試す</button>
       </div>
       <div id="quiz-body" hidden>
         <p class="q-label" id="q-label"></p>
@@ -45,13 +51,48 @@
         <a class="wiki-link" id="r-link" target="_blank" rel="noopener">Wikipediaで読む ↗</a>
       </article>
       <div class="result-actions">
-        <button class="btn btn-primary btn-block" id="btn-next">次の問題</button>
+        <button class="btn btn-fav" id="btn-fav" type="button" aria-pressed="false">☆ 気になる</button>
+        <button class="btn btn-primary" id="btn-next" type="button">次の問題</button>
       </div>
+    </section>
+
+    <!-- 気になるリスト -->
+    <section id="view-favorites" class="view" hidden>
+      <h2 class="view-title">気になる</h2>
+      <p class="view-lead">保存した記事の一覧です。</p>
+      <ul class="list" id="fav-list"></ul>
+      <p class="empty" id="fav-empty">まだありません。<br>回答後の「☆ 気になる」で保存できます。</p>
+    </section>
+
+    <!-- 間違えた問題 -->
+    <section id="view-mistakes" class="view" hidden>
+      <h2 class="view-title">復習</h2>
+      <p class="view-lead">間違えた問題を解き直せます。正解すると一覧から外れます。</p>
+      <button class="btn btn-primary btn-block" id="btn-review-all" type="button">すべて復習する</button>
+      <ul class="list" id="mis-list"></ul>
+      <p class="empty" id="mis-empty">間違えた問題はありません。</p>
+    </section>
+
+    <!-- 成績 -->
+    <section id="view-stats" class="view" hidden>
+      <h2 class="view-title">成績</h2>
+      <div class="tiles" id="stats-tiles"></div>
+      <h3 class="sub-title">この7日間</h3>
+      <div class="week" id="stats-week"></div>
+      <div class="legend"><span><i style="background:var(--matsu)"></i>正解</span><span><i style="background:var(--line)"></i>不正解</span></div>
     </section>
   </main>
 
+  <nav class="tabbar" aria-label="メニュー">
+    <button class="tab is-active" data-tab="quiz" type="button"><span class="tab-ico">問</span>出題</button>
+    <button class="tab" data-tab="favorites" type="button"><span class="tab-ico">☆</span>気になる</button>
+    <button class="tab" data-tab="mistakes" type="button"><span class="tab-ico">復</span>復習<span class="badge" id="mis-badge" hidden></span></button>
+    <button class="tab" data-tab="stats" type="button"><span class="tab-ico">績</span>成績</button>
+  </nav>
+
   <script src="js/wiki.js"></script>
   <script src="js/quiz.js"></script>
+  <script src="js/storage.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
