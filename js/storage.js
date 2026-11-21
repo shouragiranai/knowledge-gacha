@@ -6,6 +6,7 @@
     favorites: 'kg.favorites.v1',
     mistakes: 'kg.mistakes.v1',
     stats: 'kg.stats.v1',
+    settings: 'kg.settings.v1',
   };
 
   function load(key, fallback) {
@@ -123,5 +124,19 @@
     },
   };
 
-  KG.store = { favorites, mistakes, stats };
+  /* ---------- 設定 ---------- */
+  const settings = {
+    get() {
+      const s = load(KEYS.settings, null) || {};
+      return {
+        difficulty: s.difficulty || 'normal', // 'easy' | 'normal' | 'hard'
+        genres: s.genres || {},              // ジャンルID → 'none' | 'few' | 'normal'(未設定は 'few')
+      };
+    },
+    set(patch) {
+      save(KEYS.settings, Object.assign(this.get(), patch));
+    },
+  };
+
+  KG.store = { favorites, mistakes, stats, settings };
 })(window.KG = window.KG || {});

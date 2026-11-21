@@ -15,7 +15,10 @@
 <body>
   <header class="app-header">
     <h1 class="logo">知識<span>ガチャ</span></h1>
-    <div class="header-stat" id="header-stat" aria-label="連続正解数"></div>
+    <div class="header-right">
+      <div class="header-stat" id="header-stat" aria-label="連続正解数"></div>
+      <button class="icon-btn" id="btn-settings" type="button" aria-label="設定">⚙</button>
+    </div>
   </header>
 
   <main id="main">
@@ -82,6 +85,17 @@
       <div class="week" id="stats-week"></div>
       <div class="legend"><span><i style="background:var(--matsu)"></i>正解</span><span><i style="background:var(--line)"></i>不正解</span></div>
     </section>
+
+    <!-- 設定 -->
+    <section id="view-settings" class="view" hidden>
+      <h2 class="view-title">設定</h2>
+      <h3 class="sub-title">難易度</h3>
+      <div id="set-difficulty"></div>
+      <p class="view-lead set-note" id="set-difficulty-note"></p>
+      <h3 class="sub-title">ジャンルの出やすさ</h3>
+      <p class="view-lead">ランダム記事は人物や駅などが多いので、最初は「少なめ」にしてあります。判定は記事の書き出しから推定しているため、まれに外れます。</p>
+      <div class="set-genres" id="set-genres"></div>
+    </section>
   </main>
 
   <nav class="tabbar" aria-label="メニュー">
@@ -92,6 +106,7 @@
   </nav>
 
   <script src="js/wiki.js"></script>
+  <script src="js/genre.js"></script>
   <script src="js/quiz.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/app.js"></script>

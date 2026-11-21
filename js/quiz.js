@@ -80,10 +80,12 @@
    * 似た記事の候補から、紛らわしいが答えにならない選択肢を選ぶ。
    * @param {object} answer 正解記事
    * @param {string[]} candidates 検索で見つかった似た記事のタイトル(関連度順)
-   * @param {number} [n]
+   * @param {number} [n] 選ぶ数
+   * @param {number} [pool] 関連度の上位何件から選ぶか(小さいほど紛らわしい)
    */
-  function pickDistractors(answer, candidates, n) {
+  function pickDistractors(answer, candidates, n, pool) {
     n = n || 3;
+    pool = pool || 6;
     const ansBase = baseTitle(answer.title);
     const seenBase = new Set([ansBase]);
     const ok = [];
@@ -97,7 +99,7 @@
       ok.push(t);
     }
     // 関連度の高い上位から選び、毎回同じ組み合わせにならないよう少し混ぜる
-    return shuffle(ok.slice(0, Math.max(n, 6))).slice(0, n);
+    return shuffle(ok.slice(0, Math.max(n, pool))).slice(0, n);
   }
 
   /**

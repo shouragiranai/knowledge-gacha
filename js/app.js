@@ -18,22 +18,33 @@
 
   /* ---------- 問題の取得と先読み ---------- */
 
+  // 難易度ごとの「似た記事」の選択肢の数(残りはランダム記事)
+  const SIMILAR_COUNT = { easy: 1, normal: 2, hard: 3 };
+
   async function makeQuestion() {
-    const [answer] = await KG.wiki.fetchArticles(1);
-    let distractors = [];
+    const conf = KG.store.settings.get();
+    const accept = (a) => KG.genre.accept(a, conf.genres);
+    const nSimilar = SIMILAR_COUNT[conf.difficulty] || 2;
+
+    // 正解記事と、ランダム枠の選択肢をまとめて取得
+    const arts = await KG.wiki.fetchArticles(1 + (3 - nSimilar), accept);
+    const answer = arts[0];
+    let similar = [];
     try {
-      const similar = await KG.wiki.fetchSimilarTitles(answer.title);
-      distractors = KG.quiz.pickDistractors(answer, similar);
+      const found = await KG.wiki.fetchSimilarTitles(answer.title);
+      // むずかしい: 特に近い記事から / それ以外: 少し遠い記事まで含めて選ぶ
+      similar = KG.quiz.pickDistractors(answer, found, nSimilar, conf.difficulty === 'hard' ? 6 : 15);
     } catch (e) {
       // 検索に失敗したらランダム記事で代用する
     }
+    let distractors = similar.concat(arts.slice(1).map((a) => a.title))
+      .filter((t, i, all) => t !== answer.title && all.indexOf(t) === i);
     if (distractors.length < 3) {
-      const extra = await KG.wiki.fetchArticles(4);
-      const more = extra.map((a) => a.title)
-        .filter((t) => t !== answer.title && !distractors.includes(t));
-      distractors = distractors.concat(more).slice(0, 3);
+      const extra = await KG.wiki.fetchArticles(4, accept);
+      distractors = distractors.concat(extra.map((a) => a.title)
+        .filter((t) => t !== answer.title && !distractors.includes(t)));
     }
-    return KG.quiz.buildQuestion(answer, distractors);
+    return KG.quiz.buildQuestion(answer, distractors.slice(0, 3));
   }
 
   function prefetch() {
@@ -56,11 +67,13 @@
   const TAB_OF_VIEW = {
     'view-quiz': 'quiz', 'view-result': 'quiz',
     'view-favorites': 'favorites', 'view-mistakes': 'mistakes', 'view-stats': 'stats',
+    'view-settings': null,
   };
 
   function show(id) {
     document.querySelectorAll('.view').forEach((v) => { v.hidden = v.id !== id; });
-    document.querySelectorAll('.tab').forEach((t) => {
+    $('btn-settings').addEventListener('click', () => openTab('settings'));
+  document.querySelectorAll('.tab').forEach((t) => {
       t.classList.toggle('is-active', t.dataset.tab === TAB_OF_VIEW[id]);
     });
     document.body.classList.toggle('has-sticky', id === 'view-result');
@@ -86,6 +99,9 @@
     } else if (tab === 'stats') {
       renderStats();
       show('view-stats');
+    } else if (tab === 'settings') {
+      renderSettings();
+      show('view-settings');
     }
   }
 
@@ -376,6 +392,65 @@
     }).join('');
   }
 
+  /* ---------- 設定 ---------- */
+
+  const DIFFICULTIES = [
+    ['easy', 'やさしい', '似た記事1つ+ランダム2つ'],
+    ['normal', 'ふつう', '似た記事2つ+ランダム1つ'],
+    ['hard', 'むずかしい', '似た記事だけ'],
+  ];
+  const LEVELS = [['none', '出さない'], ['few', '少なめ'], ['normal', 'ふつう']];
+
+  function segmented(name, items, value, onChange) {
+    const wrap = document.createElement('div');
+    wrap.className = 'seg';
+    wrap.setAttribute('role', 'radiogroup');
+    items.forEach(([v, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'seg-btn' + (v === value ? ' is-on' : '');
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', String(v === value));
+      b.setAttribute('aria-label', name + ' ' + label);
+      b.textContent = label;
+      b.addEventListener('click', () => onChange(v));
+      wrap.appendChild(b);
+    });
+    return wrap;
+  }
+
+  function changeSettings(patch) {
+    KG.store.settings.set(patch);
+    state.nextPromise = null; // 先読みした問題は古い設定なので捨てて作り直す
+    if (state.mode === 'normal') prefetch();
+    renderSettings();
+  }
+
+  function renderSettings() {
+    const conf = KG.store.settings.get();
+    const diff = $('set-difficulty');
+    diff.innerHTML = '';
+    diff.appendChild(segmented('難易度', DIFFICULTIES, conf.difficulty,
+      (v) => changeSettings({ difficulty: v })));
+    const d = DIFFICULTIES.find((x) => x[0] === conf.difficulty);
+    $('set-difficulty-note').textContent = d ? '選択肢:' + d[2] : '';
+
+    const box = $('set-genres');
+    box.innerHTML = '';
+    KG.genre.list.forEach((g) => {
+      const row = document.createElement('div');
+      row.className = 'set-row';
+      const label = document.createElement('span');
+      label.className = 'set-label';
+      label.textContent = g.label;
+      row.appendChild(label);
+      row.appendChild(segmented(g.label, LEVELS, conf.genres[g.id] || 'few', (v) => {
+        changeSettings({ genres: Object.assign({}, conf.genres, { [g.id]: v }) });
+      }));
+      box.appendChild(row);
+    });
+  }
+
   /* ---------- ヘッダー・バッジ ---------- */
 
   function updateBadges() {
@@ -403,6 +478,7 @@
     exitReview();
     openTab('mistakes');
   });
+  $('btn-settings').addEventListener('click', () => openTab('settings'));
   document.querySelectorAll('.tab').forEach((t) => {
     t.addEventListener('click', () => openTab(t.dataset.tab));
   });

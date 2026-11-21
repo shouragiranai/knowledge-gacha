@@ -20,6 +20,7 @@
     return {
       title: d.title,
       extract: d.extract,
+      description: d.description || '',
       thumbnail: d.thumbnail ? d.thumbnail.source : null,
       url: (urls.mobile && urls.mobile.page) || (urls.desktop && urls.desktop.page) ||
         'https://ja.wikipedia.org/wiki/' + encodeURIComponent(d.title),
@@ -35,13 +36,14 @@
   /**
    * 使える記事を n 件集めて返す。
    * @param {number} n
+   * @param {(a: object) => boolean} [accept] ジャンルの出題頻度などの追加条件
    */
-  async function fetchArticles(n) {
+  async function fetchArticles(n, accept) {
     const found = [];
     const titles = new Set();
     let attempts = 0;
     let failures = 0;
-    const MAX_ATTEMPTS = n * 8;
+    const MAX_ATTEMPTS = 30 + n * 10;
 
     while (found.length < n && attempts < MAX_ATTEMPTS) {
       const batch = Math.min(n - found.length + 2, 6);
@@ -53,7 +55,10 @@
         if (r.status === 'rejected') { failures++; continue; }
         const d = r.value;
         if (!isUsable(d) || titles.has(d.title)) continue;
-        found.push(normalize(d));
+        const a = normalize(d);
+        // ジャンル条件は、試行回数の後半ではゆるめて(出題が止まらないように)
+        if (accept && attempts <= MAX_ATTEMPTS * 0.7 && !accept(a)) continue;
+        found.push(a);
         titles.add(d.title);
         if (found.length >= n) break;
       }
